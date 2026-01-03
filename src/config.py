@@ -2,6 +2,7 @@
 Shared configuration for F1 short video creator
 """
 import os
+import multiprocessing
 
 BASE_DIR = "/Users/abhaykumar/Documents/f1.ai"
 PROJECTS_DIR = f"{BASE_DIR}/projects"
@@ -11,6 +12,12 @@ SHARED_DIR = f"{BASE_DIR}/shared"
 ELEVENLABS_KEY_FILE = f"{SHARED_DIR}/creds/elevenlabs"
 VOICE_ID = "NNl6r8mD7vthiJatiJt1"  # Bradford - Expressive British
 MODEL_ID = "eleven_multilingual_v2"
+
+# Concurrency Settings
+MAX_CONCURRENT_AUDIO = 4  # API rate limit friendly
+MAX_CONCURRENT_DOWNLOADS = 3  # Be respectful to YouTube
+MAX_CONCURRENT_SEGMENTS = min(4, multiprocessing.cpu_count())  # For video assembly
+MAX_CONCURRENT_FRAMES = 4  # For preview extraction
 
 # YouTube API Config
 YOUTUBE_CLIENT_SECRETS = f"{SHARED_DIR}/creds/youtube_client_secrets.json"
