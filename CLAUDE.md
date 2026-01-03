@@ -4,14 +4,23 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-F1.ai is an automated pipeline for creating F1-themed YouTube Shorts (60-second vertical videos). It orchestrates: script creation → fact checking → voiceover generation (ElevenLabs) → footage acquisition (yt-dlp) → video assembly (FFmpeg with GPU acceleration) → YouTube upload.
+F1.ai is an automated pipeline for creating F1-themed YouTube videos. It supports two formats:
+
+1. **Shorts** (60-second vertical videos, 9:16) - Quick, engaging content for mobile
+2. **Long-form** (~10-minute horizontal videos, 16:9, up to 4K) - In-depth content with references
+
+Both formats orchestrate: script creation → fact checking → voiceover generation (ElevenLabs) → footage acquisition (yt-dlp) → video assembly (FFmpeg with GPU acceleration) → YouTube upload.
 
 ## Common Commands
+
+### Shared Commands (Both Formats)
 
 ```bash
 # Fact-check script content
 python3 src/fact_checker.py --project {name}
 python3 src/fact_checker.py --project {name} --web-search --api-key YOUR_KEY
+python3 src/fact_checker.py --project {name} --validate-refs  # Check reference coverage (long-form)
+python3 src/fact_checker.py --project {name} --suggest-refs --web-search  # Get source suggestions
 
 # Check/apply phonetic pronunciation corrections
 python3 src/phonetics.py --project {name} --mode analyze
@@ -34,18 +43,34 @@ python3 src/footage_downloader.py --project {name} --list
 
 # Extract preview frames (concurrent by default)
 python3 src/preview_extractor.py --project {name}
+```
 
-# Assemble final video (concurrent + GPU acceleration by default)
+### Shorts Commands (9:16 Vertical)
+
+```bash
+# Assemble short video (1080x1920)
 python3 src/video_assembler.py --project {name}
 python3 src/video_assembler.py --project {name} --encoder nvenc  # NVIDIA GPU
 python3 src/video_assembler.py --project {name} --encoder cpu    # CPU fallback
-python3 src/video_assembler.py --project {name} --workers 8      # custom concurrency
 
-# Preview upload metadata (dry run)
-python3 src/youtube_uploader.py --project {name} --dry-run
+# Upload short to YouTube
+python3 src/youtube_uploader.py --project {name} --dry-run      # Preview metadata
+python3 src/youtube_uploader.py --project {name}                 # Upload
+```
 
-# Upload to YouTube
-python3 src/youtube_uploader.py --project {name}
+### Long-Form Commands (16:9 Horizontal, 4K/HD)
+
+```bash
+# Assemble long-form video (4K: 3840x2160 or HD: 1920x1080)
+python3 src/video_assembler_longform.py --project {name}                    # 4K default
+python3 src/video_assembler_longform.py --project {name} --resolution hd    # 1080p
+python3 src/video_assembler_longform.py --project {name} --encoder hevc     # HEVC codec
+python3 src/video_assembler_longform.py --project {name} --no-credits       # Skip end credits
+python3 src/video_assembler_longform.py --project {name} --workers 8        # Custom concurrency
+
+# Upload long-form video to YouTube (includes references in description)
+python3 src/youtube_uploader_longform.py --project {name} --dry-run  # Preview metadata
+python3 src/youtube_uploader_longform.py --project {name}             # Upload
 ```
 
 ## Architecture
@@ -56,14 +81,16 @@ script.json → fact_check → phonetics → audio/*.mp3 → footage/*.mp4 → p
 ```
 
 **Core Modules (`src/`):**
-- `config.py` - Centralized settings, API keys, F1 team colors, video specs, concurrency settings
-- `fact_checker.py` - **NEW** Script validation against F1 knowledge base + optional web search
-- `phonetics.py` - **NEW** Pronunciation correction for F1 proper nouns (drivers, teams, circuits)
+- `config.py` - Centralized settings, API keys, F1 team colors, video specs (shorts + long-form)
+- `fact_checker.py` - Script validation with knowledge base, web search, and **reference validation**
+- `phonetics.py` - Pronunciation correction for F1 proper nouns (drivers, teams, circuits)
 - `audio_generator.py` - ElevenLabs TTS with caching and **concurrent processing**
 - `footage_downloader.py` - yt-dlp YouTube search/download with **concurrent downloads**
 - `preview_extractor.py` - Frame extraction with **concurrent processing**
-- `video_assembler.py` - FFmpeg composition with **GPU acceleration** and **concurrent segment processing**
-- `youtube_uploader.py` - OAuth upload with auto-generated metadata
+- `video_assembler.py` - Shorts: 9:16 vertical FFmpeg composition with GPU acceleration
+- `video_assembler_longform.py` - Long-form: 16:9 horizontal, 4K/HD with **end credits**
+- `youtube_uploader.py` - Shorts: OAuth upload with #Shorts hashtag
+- `youtube_uploader_longform.py` - Long-form: Standard video upload with **references in description**
 
 **Project Structure:**
 ```
@@ -136,6 +163,8 @@ python3 src/phonetics.py --list  # Show all pronunciations
 
 ## script.json Format
 
+### Shorts Format (Basic)
+
 ```json
 {
   "title": "Video Title",
@@ -153,4 +182,53 @@ python3 src/phonetics.py --list  # Show all pronunciations
 }
 ```
 
-The `footage_start` field specifies the timestamp (seconds) in the source footage to begin extraction.
+### Long-Form Format (With References)
+
+```json
+{
+  "title": "The Rise of Max Verstappen",
+  "format": "longform",
+  "resolution": "4k",
+  "duration_target": 600,
+  "segments": [
+    {
+      "id": 1,
+      "section": "intro",
+      "text": "At just seventeen years old, Max Verstappen became the youngest driver ever to compete in Formula One.",
+      "context": "Opening hook",
+      "footage_query": "Verstappen F1 debut 2015",
+      "footage_start": 45,
+      "references": [
+        {
+          "claim": "Youngest driver ever to compete in F1 at seventeen",
+          "source": "Formula 1 Official",
+          "url": "https://www.formula1.com/en/drivers/max-verstappen.html",
+          "date": "2024-01-15"
+        }
+      ]
+    }
+  ],
+  "references_summary": [
+    {
+      "source": "Formula 1 Official",
+      "url": "https://www.formula1.com",
+      "claims_supported": [1, 3, 5]
+    }
+  ]
+}
+```
+
+**Key Fields:**
+- `footage_start`: Timestamp (seconds) in source footage to begin extraction
+- `section`: Organize segments (intro, main, conclusion) - used for YouTube chapters
+- `references`: Sources for factual claims - displayed in end credits and description
+- `references_summary`: Consolidated source list for the entire video
+
+## Long-Form Video Features
+
+- **4K/HD Resolution**: 3840x2160 or 1920x1080, 16:9 horizontal
+- **Higher Bitrate**: 20Mbps (4K) or 12Mbps (HD) for quality
+- **End Credits**: Auto-generated with sources/references
+- **Reference Tracking**: Every factual claim should have a source
+- **YouTube Chapters**: Generated from section names
+- **Description with Sources**: All references included in upload

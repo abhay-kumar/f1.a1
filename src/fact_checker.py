@@ -321,6 +321,58 @@ def check_segment(segment: Dict, segment_id: int, use_web: bool = False,
     return results
 
 
+def validate_references(script: Dict) -> Dict:
+    """Validate that all segments have proper references (for long-form videos)"""
+    issues = {
+        "missing_references": [],
+        "incomplete_references": [],
+        "total_references": 0,
+        "segments_with_refs": 0,
+        "segments_without_refs": 0
+    }
+
+    segments = script.get("segments", [])
+
+    for idx, segment in enumerate(segments):
+        refs = segment.get("references", [])
+
+        if not refs:
+            issues["missing_references"].append({
+                "segment_id": idx,
+                "text": segment.get("text", "")[:80]
+            })
+            issues["segments_without_refs"] += 1
+        else:
+            issues["segments_with_refs"] += 1
+            issues["total_references"] += len(refs)
+
+            # Check each reference for completeness
+            for ref in refs:
+                if not ref.get("source") or not ref.get("url"):
+                    issues["incomplete_references"].append({
+                        "segment_id": idx,
+                        "reference": ref
+                    })
+
+    return issues
+
+
+def generate_reference_suggestions(segment: Dict, claim_results: List[FactCheckResult]) -> List[Dict]:
+    """Generate reference suggestions based on fact check results"""
+    suggestions = []
+
+    for result in claim_results:
+        if result.sources:
+            suggestions.append({
+                "claim": result.claim[:100],
+                "suggested_source": result.sources[0] if result.sources else "",
+                "confidence": result.confidence,
+                "notes": result.notes
+            })
+
+    return suggestions
+
+
 def main():
     parser = argparse.ArgumentParser(description='Fact-check F1 script content')
     parser.add_argument('--project', required=True, help='Project name')
@@ -332,6 +384,10 @@ def main():
                         help='Output format')
     parser.add_argument('--strict', action='store_true',
                         help='Fail if any claims are unverified or disputed')
+    parser.add_argument('--validate-refs', action='store_true',
+                        help='Validate references in script (for long-form videos)')
+    parser.add_argument('--suggest-refs', action='store_true',
+                        help='Suggest references based on web search results')
     args = parser.parse_args()
 
     project_dir = get_project_dir(args.project)
@@ -354,8 +410,33 @@ def main():
     print(f"Web Search: {'Enabled' if args.web_search else 'Disabled'}")
     print("=" * 60)
 
+    # Validate references if requested (for long-form videos)
+    if args.validate_refs:
+        print("\n📚 REFERENCE VALIDATION")
+        print("-" * 40)
+        ref_issues = validate_references(script)
+
+        print(f"  Segments with references:    {ref_issues['segments_with_refs']}")
+        print(f"  Segments without references: {ref_issues['segments_without_refs']}")
+        print(f"  Total references:            {ref_issues['total_references']}")
+
+        if ref_issues['missing_references']:
+            print(f"\n  ⚠️  Segments missing references:")
+            for issue in ref_issues['missing_references'][:10]:
+                print(f"      [Segment {issue['segment_id']}] {issue['text']}...")
+            if len(ref_issues['missing_references']) > 10:
+                print(f"      ... and {len(ref_issues['missing_references']) - 10} more")
+
+        if ref_issues['incomplete_references']:
+            print(f"\n  ⚠️  Incomplete references (missing source/url):")
+            for issue in ref_issues['incomplete_references'][:5]:
+                print(f"      [Segment {issue['segment_id']}] {issue['reference']}")
+
+        print()
+
     all_results = []
     stats = {"verified": 0, "unverified": 0, "disputed": 0, "no_claims": 0, "partially_verified": 0}
+    reference_suggestions = []
 
     # Process segments
     if args.segment is not None:
@@ -385,6 +466,15 @@ def main():
                     print(f"    {icon} {claim_result.claim[:60]}...")
                     if claim_result.notes:
                         print(f"        -> {claim_result.notes}")
+
+                # Generate reference suggestions if requested
+                if args.suggest_refs and args.web_search:
+                    suggestions = generate_reference_suggestions(segment, result.claims)
+                    if suggestions:
+                        reference_suggestions.append({
+                            "segment_id": idx,
+                            "suggestions": suggestions
+                        })
 
     # Summary
     print(f"\n{'=' * 60}")
@@ -426,6 +516,19 @@ def main():
             json.dump(json_results, f, indent=2)
         print(f"\nResults saved to: {output_file}")
 
+    # Show reference suggestions if generated
+    if reference_suggestions:
+        print(f"\n{'=' * 60}")
+        print("REFERENCE SUGGESTIONS")
+        print(f"{'=' * 60}")
+        for seg_suggestions in reference_suggestions:
+            print(f"\n[Segment {seg_suggestions['segment_id']}]")
+            for suggestion in seg_suggestions['suggestions']:
+                print(f"  Claim: {suggestion['claim'][:70]}...")
+                print(f"  Source: {suggestion['suggested_source']}")
+                print(f"  Confidence: {suggestion['confidence']:.0%}")
+                print()
+
     # Strict mode exit code
     if args.strict:
         if stats['disputed'] > 0:
@@ -435,7 +538,14 @@ def main():
             print("\nSTRICT MODE: Unverified claims found!")
             sys.exit(1)
 
-    print("\nTip: Run with --web-search for online verification of unverified claims")
+    # Tips
+    print("\n💡 Tips:")
+    if not args.web_search:
+        print("  • Run with --web-search for online verification of unverified claims")
+    if not args.validate_refs:
+        print("  • Run with --validate-refs to check reference coverage (for long-form videos)")
+    if not args.suggest_refs:
+        print("  • Run with --suggest-refs --web-search to get source suggestions")
 
 
 if __name__ == "__main__":
