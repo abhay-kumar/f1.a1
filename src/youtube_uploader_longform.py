@@ -33,7 +33,10 @@ except ImportError:
     sys.exit(1)
 
 # YouTube API config
-SCOPES = ["https://www.googleapis.com/auth/youtube.upload"]
+SCOPES = [
+    "https://www.googleapis.com/auth/youtube.upload",
+    "https://www.googleapis.com/auth/youtube.force-ssl"  # Required for captions
+]
 CLIENT_SECRETS_FILE = f"{SHARED_DIR}/creds/youtube_client_secrets.json"
 TOKEN_FILE = f"{SHARED_DIR}/creds/youtube_token.pickle"
 
@@ -271,6 +274,43 @@ def generate_metadata_from_script(script: Dict) -> Dict:
     }
 
 
+def upload_captions(youtube, video_id: str, caption_path: str,
+                    language: str = "en", name: str = "English") -> bool:
+    """Upload captions/subtitles to a YouTube video"""
+    if not os.path.exists(caption_path):
+        print(f"Caption file not found: {caption_path}")
+        return False
+
+    try:
+        body = {
+            "snippet": {
+                "videoId": video_id,
+                "language": language,
+                "name": name,
+                "isDraft": False
+            }
+        }
+
+        media = MediaFileUpload(
+            caption_path,
+            mimetype="application/x-subrip",  # SRT format
+            resumable=True
+        )
+
+        request = youtube.captions().insert(
+            part="snippet",
+            body=body,
+            media_body=media
+        )
+
+        response = request.execute()
+        return response is not None
+
+    except Exception as e:
+        print(f"Caption upload failed: {e}")
+        return False
+
+
 def upload_video(youtube, video_path: str, metadata: Dict,
                  privacy: str = "private") -> Optional[Dict]:
     """Upload video to YouTube"""
@@ -334,6 +374,7 @@ def main():
     project_dir = get_project_dir(args.project)
     video_path = f"{project_dir}/output/final.mp4"
     script_path = f"{project_dir}/script.json"
+    captions_path = f"{project_dir}/output/captions.srt"
 
     # Validate files exist
     if not os.path.exists(video_path):
@@ -344,6 +385,8 @@ def main():
     if not os.path.exists(script_path):
         print(f"Error: Script not found at {script_path}")
         sys.exit(1)
+
+    has_captions = os.path.exists(captions_path)
 
     # Load script and generate metadata
     with open(script_path) as f:
@@ -380,6 +423,7 @@ def main():
     print(f"\n🏷️  TAGS ({len(metadata['tags'])}):")
     print(f"   {', '.join(metadata['tags'][:15])}...")
     print(f"\n📚 REFERENCES: {ref_count} sources cited")
+    print(f"📝 CAPTIONS: {'Yes - ' + captions_path if has_captions else 'No captions file found'}")
     print(f"\n🔒 PRIVACY: {args.privacy}")
     print(f"📁 VIDEO: {video_path}")
     print(f"📦 SIZE: {file_size:.1f}MB")
@@ -410,6 +454,17 @@ def main():
         print(f"\n{'=' * 70}")
         print(f"✅ SUCCESS! Video uploaded")
         print(f"🔗 URL: https://youtube.com/watch?v={video_id}")
+
+        # Upload captions if available
+        captions_uploaded = False
+        if has_captions:
+            print(f"\n📝 Uploading captions...")
+            captions_uploaded = upload_captions(youtube, video_id, captions_path)
+            if captions_uploaded:
+                print("✅ Captions uploaded successfully")
+            else:
+                print("⚠️  Caption upload failed (video is still uploaded)")
+
         print(f"{'=' * 70}")
 
         # Save upload info
@@ -420,6 +475,7 @@ def main():
             "privacy": args.privacy,
             "format": "longform",
             "references_count": ref_count,
+            "captions_uploaded": captions_uploaded,
         }
 
         with open(f"{project_dir}/upload_info.json", "w") as f:
