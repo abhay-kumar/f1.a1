@@ -169,32 +169,56 @@ Make complex topics accessible:
 
 ## VISUAL CONTENT STRATEGY
 
-### CRITICAL: Footage Selection Rules for Long-Form Videos
+### Long-Form Videos: Stock Image Approach
 
-**MUST AVOID - These will ruin the video:**
-1. **No talking heads**: Never use footage where someone is speaking directly to camera (interviews, vlogs, commentary). This confuses viewers who expect to hear that person.
-2. **No heavy text/subtitles**: Avoid footage with burned-in subtitles, lower thirds, or text overlays. These clash with our narrative.
-3. **No vertical/short-form content**: Never use 9:16 vertical videos or TikTok/Shorts content. Only use 16:9 horizontal footage.
-4. **No mismatched content**: The visual MUST relate to what the voiceover is discussing. Generic F1 footage is better than unrelated content.
+**Long-form videos use STOCK IMAGES with Ken Burns effects instead of downloaded YouTube footage.**
 
-**PREFER - These work well:**
-1. **B-roll footage**: Race action, pit stops, car details, circuit aerials, paddock scenes without people talking
-2. **Official highlight reels**: Race highlights, onboard cameras, slow-motion shots
-3. **Technical footage**: Engine close-ups, factory shots, car components (without narration)
-4. **Historical footage**: Archive clips relevant to the topic
-5. **Stock footage**: Generic relevant visuals (fuel production, chemistry labs, factories)
+This approach is used by many successful informative YouTube channels and provides:
+- **Consistent quality**: High-resolution stock photos from Pexels/Unsplash
+- **No copyright issues**: Properly licensed images with attribution
+- **Professional look**: Ken Burns effects (zoom/pan) create engaging motion
+- **Quote overlays**: Speaker quotes displayed with their image
+- **Fast production**: No need to wait for video downloads
 
-**Search Query Best Practices:**
+### Visual Types for Long-Form
+
+| Type | Use Case | Script Field | Example |
+|------|----------|--------------|---------|
+| `image` | Most segments | `image_query` | Stock photos with Ken Burns |
+| `quote` | Direct quotes | Auto-detected | Quote card with speaker photo |
+| `graphic` | AI-generated diagrams | `graphic_description` | DALL-E generated (if credits available) |
+
+### Ken Burns Effects
+
+The assembler automatically applies varied Ken Burns effects:
+- **zoom_in**: Slow zoom towards center - builds intensity
+- **zoom_out**: Pull back - reveals context
+- **pan_left/right**: Horizontal movement - implies progression
+- **zoom_pan_right**: Combined zoom and pan - dynamic focus
+
+Effects are automatically varied per segment for visual interest.
+
+### Quote Detection
+
+When the script contains quotes (phrases like "has said", "stated", "according to"), the system:
+1. Detects the speaker's name
+2. Fetches their image (if available)
+3. Displays a professional quote card overlay
+
+### Image Search Query Best Practices
+
 ```
-GOOD: "F1 pit stop refueling b-roll"
+GOOD: "sustainable energy technology"
+BAD:  "F1 2026 sustainable fuel explained video"
+
+GOOD: "hydrogen fuel cell laboratory"
+BAD:  "hydrogen fuel documentary interview"
+
+GOOD: "racing car pit stop action"
 BAD:  "F1 pit stop interview"
-
-GOOD: "Mercedes F1 factory tour no commentary"
-BAD:  "Mercedes F1 explained video"
-
-GOOD: "synthetic fuel production plant footage"
-BAD:  "synthetic fuel documentary"
 ```
+
+Use descriptive visual terms, not video-specific searches.
 
 ### When Stock Footage Isn't Available
 
@@ -449,41 +473,34 @@ Mix visual types to maintain viewer engagement:
    python3 src/audio_generator.py --project {name}
    ```
 
-7. **Download/Create Visuals**:
-   ```bash
-   # For video footage
-   python3 src/footage_downloader.py --project {name}
+7. **Assemble Video (Stock Images)**:
+   Long-form videos use the image-based assembler which automatically:
+   - Fetches stock images from Pexels/Unsplash based on segment content
+   - Applies Ken Burns effects (zoom/pan) for professional motion
+   - Detects quotes and creates quote overlays with speaker images
+   - Generates fade transitions between segments
 
-   # For graphics - manually create or use generation tools
-   # Place in projects/{name}/footage/ with matching filenames
+   ```bash
+   # Assemble using stock images (recommended for long-form)
+   python3 src/image_video_assembler.py --project {name}
+
+   # Options:
+   python3 src/image_video_assembler.py --project {name} --resolution hd  # Faster, 1080p
+   python3 src/image_video_assembler.py --project {name} --effect zoom_in  # Force specific effect
    ```
 
-8. **Extract Previews**: Generate preview frames
-   ```bash
-   python3 src/preview_extractor.py --project {name}
-   ```
+   **Note**: Requires Pexels API key in `shared/creds/pexels` (free tier available)
 
-9. **Verify All Assets**: CRITICAL
-   - Check video footage matches narrative context
-   - Verify graphics are clear and accurate
-   - Ensure all segments have appropriate visuals
-
-### Phase 4: Video Assembly
-
-10. **Assemble Video**:
-    ```bash
-    python3 src/video_assembler_longform.py --project {name}
-    ```
-
-11. **Quality Check**:
+8. **Quality Check**:
     - Video/audio sync throughout
-    - Graphics render correctly
+    - Ken Burns effects look smooth
+    - Quote overlays display correctly
     - Pacing feels right
     - End credits display properly
 
 ### Phase 5: Upload (Optional)
 
-12. **Upload to YouTube**:
+9. **Upload to YouTube**:
     ```bash
     python3 src/youtube_uploader_longform.py --project {name} --dry-run  # Preview
     python3 src/youtube_uploader_longform.py --project {name}            # Upload
@@ -560,26 +577,33 @@ python3 src/fact_checker.py --project {name} --validate-refs
 # Generate audio (cached)
 python3 src/audio_generator.py --project {name}
 
-# Download all footage
-python3 src/footage_downloader.py --project {name}
+# Assemble video using stock images (RECOMMENDED for long-form)
+python3 src/image_video_assembler.py --project {name}
 
-# Download specific segment with custom query
-python3 src/footage_downloader.py --project {name} --segment {id} --query "search terms"
+# Assemble in HD (faster, smaller file)
+python3 src/image_video_assembler.py --project {name} --resolution hd
 
-# Extract previews
-python3 src/preview_extractor.py --project {name}
+# Force specific Ken Burns effect
+python3 src/image_video_assembler.py --project {name} --effect zoom_in
 
-# Assemble 4K video
-python3 src/video_assembler_longform.py --project {name} --resolution 4k
-
-# Assemble HD video (faster)
-python3 src/video_assembler_longform.py --project {name} --resolution hd
+# Skip background music
+python3 src/image_video_assembler.py --project {name} --no-music
 
 # Preview upload metadata
 python3 src/youtube_uploader_longform.py --project {name} --dry-run
 
 # Upload to YouTube
 python3 src/youtube_uploader_longform.py --project {name}
+```
+
+### Alternative: Footage-Based Assembly (for shorts or special cases)
+
+```bash
+# Download YouTube footage (for /create-short only)
+python3 src/footage_downloader.py --project {name}
+
+# Footage-based assembly (used by shorts)
+python3 src/video_assembler_longform.py --project {name}
 ```
 
 ---
@@ -654,6 +678,9 @@ For long-form videos, do NOT burn subtitles into the video. Instead:
 ## API Keys Location
 - ElevenLabs: `shared/creds/elevenlabs`
 - YouTube: `shared/creds/youtube_client_secrets.json`
+- Pexels (stock images): `shared/creds/pexels` - Get free key at https://www.pexels.com/api/
+- Unsplash (fallback images): `shared/creds/unsplash` - Get free key at https://unsplash.com/developers
+- OpenAI (for DALL-E graphics): `shared/creds/openai` - Optional, for AI-generated diagrams
 - SerpAPI (for fact-checking): `SERPAPI_KEY` environment variable
 
 ## Voice Settings

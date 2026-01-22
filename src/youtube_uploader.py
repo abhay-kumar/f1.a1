@@ -33,6 +33,19 @@ TOKEN_FILE = f"{SHARED_DIR}/creds/youtube_token.pickle"
 SHORTS_CATEGORY_ID = "17"  # Sports category
 DEFAULT_PRIVACY = "public"  # Default to public for Shorts
 
+# F1 Fan Content Disclaimer (per F1 guidelines)
+F1_FAN_DISCLAIMER = """
+───────────────────────────────────────────────────────────
+DISCLAIMER: This video is unofficial fan content and is not
+associated with, endorsed by, or affiliated with Formula 1,
+FIA, or Formula One Management (FOM). All F1-related trademarks
+and imagery are property of their respective owners. Created
+for commentary and entertainment under fair use principles.
+
+For official F1 content: https://www.formula1.com
+───────────────────────────────────────────────────────────
+"""
+
 
 def get_authenticated_service():
     """Authenticate and return YouTube API service"""
@@ -78,13 +91,14 @@ def generate_metadata_from_script(script):
     # Extract all text for description
     full_text = " ".join([seg["text"] for seg in segments])
 
-    # Build description
+    # Build description with disclaimer
     description_lines = [
         full_text[:300] + "..." if len(full_text) > 300 else full_text,
         "",
         "#F1 #Formula1 #Shorts",
         "",
-        "---",
+        F1_FAN_DISCLAIMER,
+        "",
         "Created with F1.ai"
     ]
     description = "\n".join(description_lines)

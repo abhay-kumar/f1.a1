@@ -57,12 +57,25 @@ python3 src/youtube_uploader.py --project {name}                 # Upload
 ### Long-Form Commands (16:9 Horizontal, 4K/HD)
 
 ```bash
-# Assemble long-form video (4K: 3840x2160 or HD: 1920x1080)
+# RECOMMENDED: Advanced visual assembler with intelligent routing
+python3 src/image_video_assembler.py --project {name}                     # HD default
+python3 src/image_video_assembler.py --project {name} --resolution 4k     # 4K output
+python3 src/image_video_assembler.py --project {name} --no-talking-head   # Disable talking head
+python3 src/image_video_assembler.py --project {name} --veo3              # Enable Veo3 AI video
+python3 src/image_video_assembler.py --project {name} --analyze           # Preview visual routing
+python3 src/image_video_assembler.py --project {name} --no-music          # Skip background music
+
+# Visual types (automatically routed based on script content):
+# - f1_image: High-quality F1 photos from Pexels/Unsplash with Ken Burns effects
+# - youtube_clip: Official F1 footage for action sequences
+# - talking_head: AI presenter for concept explanations
+# - quote_overlay: Speaker image + quote text
+# - veo3_video: AI-generated video for abstract concepts (requires --veo3 flag)
+
+# Alternative: Footage-based assembly (downloads YouTube videos)
 python3 src/video_assembler_longform.py --project {name}                    # 4K default
 python3 src/video_assembler_longform.py --project {name} --resolution hd    # 1080p
-python3 src/video_assembler_longform.py --project {name} --encoder hevc     # HEVC codec
-python3 src/video_assembler_longform.py --project {name} --no-credits       # Skip end credits
-python3 src/video_assembler_longform.py --project {name} --workers 8        # Custom concurrency
+python3 src/video_assembler_longform.py --project {name} --with-text        # Add burned-in captions
 
 # Upload long-form video to YouTube (includes references in description)
 python3 src/youtube_uploader_longform.py --project {name} --dry-run  # Preview metadata
@@ -80,10 +93,12 @@ script.json → fact_check → audio/*.mp3 → footage/*.mp4 → previews/*.jpg 
 - `config.py` - Centralized settings, API keys, F1 team colors, video specs (shorts + long-form)
 - `fact_checker.py` - Script validation with knowledge base, web search, and **reference validation**
 - `audio_generator.py` - ElevenLabs TTS with caching and **concurrent processing**
-- `footage_downloader.py` - yt-dlp YouTube search/download with **concurrent downloads**
-- `preview_extractor.py` - Frame extraction with **concurrent processing**
+- `footage_downloader.py` - yt-dlp YouTube search/download with **concurrent downloads** (shorts only)
+- `stock_image_fetcher.py` - Pexels/Unsplash API for stock photos (long-form)
+- `image_video_assembler.py` - **Long-form**: Intelligent visual routing with images, talking head, YouTube clips, quotes, and Veo3
+- `veo3_generator.py` - Google Veo3 AI video generation for abstract concepts
 - `video_assembler.py` - Shorts: 9:16 vertical FFmpeg composition with GPU acceleration
-- `video_assembler_longform.py` - Long-form: 16:9 horizontal, 4K/HD with **end credits**
+- `video_assembler_longform.py` - Long-form: 16:9 horizontal with YouTube footage (legacy)
 - `youtube_uploader.py` - Shorts: OAuth upload with #Shorts hashtag
 - `youtube_uploader_longform.py` - Long-form: Standard video upload with **references in description**
 
@@ -100,10 +115,13 @@ projects/{name}/
 
 **External Dependencies:**
 - ffmpeg/ffprobe (video processing)
-- yt-dlp (YouTube download)
+- yt-dlp (YouTube download - for shorts)
 - ElevenLabs API (TTS)
+- Pexels API (stock images - for long-form)
+- Unsplash API (fallback stock images - optional)
 - YouTube Data API v3 (upload)
 - SerpAPI (fact checking web search, optional)
+- OpenAI API (DALL-E graphics - optional)
 
 ## Critical Technical Notes
 
@@ -210,9 +228,43 @@ python3 src/fact_checker.py --project {name} --strict  # Exit non-zero if unveri
 
 ## Long-Form Video Features
 
+- **Stock Image Approach**: Uses Pexels/Unsplash photos instead of YouTube footage
+- **Ken Burns Effects**: zoom_in, zoom_out, pan_left, pan_right for engaging motion
+- **Quote Overlays**: Auto-detects quotes and displays with speaker images
 - **4K/HD Resolution**: 3840x2160 or 1920x1080, 16:9 horizontal
 - **Higher Bitrate**: 20Mbps (4K) or 12Mbps (HD) for quality
 - **End Credits**: Auto-generated with sources/references
+- **Image Attributions**: Auto-generated file with stock photo credits
+- **No Text Overlay**: Clean footage with separate SRT for YouTube captions
 - **Reference Tracking**: Every factual claim should have a source
 - **YouTube Chapters**: Generated from section names
 - **Description with Sources**: All references included in upload
+
+## API Keys Setup
+
+Store API keys in `shared/creds/`:
+- `elevenlabs` - ElevenLabs TTS API key
+- `pexels` - Pexels stock image API (free at https://www.pexels.com/api/)
+- `unsplash` - Unsplash fallback (free at https://unsplash.com/developers)
+- `openai` - OpenAI for DALL-E graphics (optional)
+- `google_ai` - Google AI API key for Veo3 video generation (optional)
+- `d-id` - D-ID API key for AI talking head (optional, uses simple animation if not set)
+- `youtube_client_secrets.json` - YouTube OAuth credentials
+
+### Veo3 Setup (Optional - AI Video Generation)
+
+Veo3 generates cinematic AI videos for abstract concepts (fuel production, chemistry, etc.):
+
+1. **Install library**: `pip install google-genai`
+2. **Get API key**: Visit https://aistudio.google.com/apikey
+3. **Save key**: `echo "YOUR_KEY" > shared/creds/google_ai`
+4. **Enable**: Use `--veo3` flag with image_video_assembler.py
+
+**Pricing** (as of 2025):
+- Veo 3 Fast: $0.15/second (~$1.20 per 8s clip)
+- Veo 3 Standard: $0.40/second (~$3.20 per 8s clip)
+
+**When Veo3 is used**:
+- Abstract concepts without specific F1 imagery (fuel chemistry, carbon capture, etc.)
+- Technical visualizations (wind tunnel, molecular processes)
+- When other visual sources fail to find relevant content

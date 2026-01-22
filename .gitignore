@@ -18,3 +18,4 @@ creds.*
 # Environment files
 .env
 .env.*
+thoughts

@@ -606,7 +606,7 @@ def main():
     parser.add_argument('--resolution', choices=['4k', 'hd'], default='4k',
                         help='Output resolution (default: 4k)')
     parser.add_argument('--no-music', action='store_true', help='Skip background music')
-    parser.add_argument('--no-text', action='store_true', help='No burned-in text/captions (use separate SRT file)')
+    parser.add_argument('--with-text', action='store_true', help='Add burned-in text/captions (disabled by default for long-form)')
     parser.add_argument('--no-credits', action='store_true', help='Skip end credits')
     parser.add_argument('--sequential', action='store_true', help='Disable concurrent processing')
     parser.add_argument('--workers', type=int, default=MAX_CONCURRENT_SEGMENTS,
@@ -680,9 +680,12 @@ def main():
     results = {}
 
     # Prepare tasks
+    # Long-form videos default to no burned-in text (use --with-text to enable)
+    no_text = not args.with_text
+
     tasks = [
         (i, segment, f"{audio_dir}/segment_{i:02d}.mp3", footage_dir,
-         f"{temp_dir}/segment_{i:02d}.mp4", width, height, bitrate, encoder, encoder_flags, args.no_text)
+         f"{temp_dir}/segment_{i:02d}.mp4", width, height, bitrate, encoder, encoder_flags, no_text)
         for i, segment in enumerate(segments)
     ]
 
@@ -777,8 +780,8 @@ def main():
     else:
         subprocess.run(["cp", concat_output, final_output])
 
-    # Generate SRT caption file if no-text mode
-    if args.no_text:
+    # Generate SRT caption file (always for long-form since text is disabled by default)
+    if no_text:
         srt_output = f"{output_dir}/captions.srt"
         print("Generating SRT caption file...")
         if generate_srt_captions(script, audio_dir, srt_output):
@@ -798,7 +801,7 @@ def main():
             print(f"{msg}")
             print(f"Duration: {duration/60:.1f} minutes ({duration:.0f}s)")
             print(f"Size: {size_mb:.1f}MB")
-            if args.no_text:
+            if no_text:
                 print(f"Captions: {output_dir}/captions.srt")
         else:
             print(f"WARNING: {msg}")
