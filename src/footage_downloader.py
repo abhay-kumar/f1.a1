@@ -1,7 +1,13 @@
 #!/usr/bin/env python3
 """
 Footage Downloader - Downloads YouTube clips for video segments
-Uses yt-dlp for downloading with concurrent processing
+
+Features:
+- Official F1 channel prioritization
+- Smart query enhancement
+- Title-based filtering (avoid interviews, press conferences)
+- Multi-candidate search with scoring
+- Optional validation integration
 """
 import os
 import sys
@@ -9,7 +15,7 @@ import json
 import argparse
 import subprocess
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Tuple, Optional, List
+from typing import Tuple, Optional, List, Dict
 import threading
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -21,8 +27,94 @@ MAX_CONCURRENT_DOWNLOADS = 3  # Be respectful to YouTube
 # Thread-safe print
 print_lock = threading.Lock()
 
+# ============================================================================
+# OFFICIAL F1 CHANNEL CONFIGURATION
+# ============================================================================
+
+OFFICIAL_CHANNELS = [
+    "FORMULA 1",
+    "Formula 1",
+    "F1",
+    "Sky Sports F1",
+    "Red Bull Racing",
+    "Mercedes-AMG PETRONAS F1 Team",
+    "Scuderia Ferrari",
+    "McLaren",
+    "Aston Martin Aramco F1 Team",
+    "BWT Alpine F1 Team",
+    "Williams Racing",
+]
+
+# Good keywords (indicate clean B-roll)
+GOOD_KEYWORDS = [
+    "highlights", "onboard", "race edit", "best moments",
+    "compilation", "season review", "battle", "overtake",
+    "pit stop", "start", "finish", "podium", "top 10",
+    "pole lap", "fastest lap", "crash", "incident",
+    "qualifying", "sprint", "team radio"
+]
+
+# Bad keywords (indicate talking heads or problematic content)
+BAD_KEYWORDS = [
+    "interview", "press conference", "reaction", "reacts",
+    "podcast", "explained", "breakdown", "analysis",
+    "vlog", "behind the scenes", "documentary", "full race",
+    "live stream", "watch along", "my thoughts", "opinion",
+    "review", "preview", "prediction"
+]
+
+
+def enhance_query(query: str) -> str:
+    """Enhance query to target official F1 B-roll content."""
+    query_lower = query.lower()
+
+    has_good = any(kw in query_lower for kw in GOOD_KEYWORDS)
+    has_f1 = "f1" in query_lower or "formula" in query_lower
+
+    enhanced = query
+
+    if not has_f1:
+        enhanced = f"{query} F1"
+
+    if not has_good:
+        if "race" in query_lower or "gp" in query_lower:
+            enhanced = f"{enhanced} highlights"
+        elif any(name in query_lower for name in ["verstappen", "hamilton", "leclerc", "norris", "alonso"]):
+            enhanced = f"{enhanced} onboard"
+        else:
+            enhanced = f"{enhanced} highlights"
+
+    return enhanced
+
+
+def score_result(title: str, channel: str) -> float:
+    """Score a search result (higher = better)."""
+    title_lower = title.lower()
+    channel_lower = channel.lower()
+
+    score = 0.5
+
+    # Official channel boost
+    for official in OFFICIAL_CHANNELS:
+        if official.lower() in channel_lower:
+            score += 0.25
+            break
+
+    # Good keywords boost
+    for good in GOOD_KEYWORDS:
+        if good in title_lower:
+            score += 0.08
+
+    # Bad keywords penalty
+    for bad in BAD_KEYWORDS:
+        if bad in title_lower:
+            score -= 0.25
+
+    return max(0, min(1, score))
+
+
 def search_youtube(query, max_results=3):
-    """Search YouTube and return video IDs with titles"""
+    """Search YouTube and return video IDs with titles (basic version)"""
     cmd = ["yt-dlp", "--no-warnings", f"ytsearch{max_results}:{query}", "--get-id", "--get-title"]
     result = subprocess.run(cmd, capture_output=True, text=True)
     lines = result.stdout.strip().split('\n')
@@ -30,6 +122,54 @@ def search_youtube(query, max_results=3):
     for i in range(0, len(lines), 2):
         if i+1 < len(lines):
             videos.append({"title": lines[i], "id": lines[i+1]})
+    return videos
+
+
+def search_youtube_enhanced(query: str, max_results: int = 8) -> List[Dict]:
+    """
+    Search YouTube with enhanced query and metadata extraction.
+    Returns results sorted by quality score.
+    """
+    enhanced = enhance_query(query)
+
+    # yt-dlp command to get title, id, channel, duration
+    cmd = [
+        "yt-dlp", "--no-warnings",
+        f"ytsearch{max_results}:{enhanced}",
+        "--print", "%(title)s|||%(id)s|||%(channel)s|||%(duration)s",
+        "--no-download"
+    ]
+
+    result = subprocess.run(cmd, capture_output=True, text=True)
+
+    videos = []
+    for line in result.stdout.strip().split('\n'):
+        if '|||' not in line:
+            continue
+
+        parts = line.split('|||')
+        if len(parts) >= 4:
+            title, video_id, channel, duration = parts[0], parts[1], parts[2], parts[3]
+
+            # Score this result
+            quality_score = score_result(title, channel)
+
+            # Skip obviously bad content
+            if quality_score < 0.2:
+                continue
+
+            videos.append({
+                "title": title,
+                "id": video_id,
+                "channel": channel,
+                "duration": duration,
+                "score": quality_score,
+                "is_official": any(o.lower() in channel.lower() for o in OFFICIAL_CHANNELS)
+            })
+
+    # Sort by score (best first)
+    videos.sort(key=lambda v: v["score"], reverse=True)
+
     return videos
 
 def download_video(video_id: str, output_path: str) -> Tuple[bool, Optional[str]]:
@@ -49,7 +189,7 @@ def download_video(video_id: str, output_path: str) -> Tuple[bool, Optional[str]
 
 
 def download_segment(args: Tuple) -> Tuple[int, bool, Optional[str], Optional[str]]:
-    """Download footage for a single segment (for concurrent execution)"""
+    """Download footage for a single segment (for concurrent execution) - basic version"""
     idx, segment, footage_dir, footage_file = args
 
     full_path = f"{footage_dir}/{footage_file}"
@@ -67,6 +207,132 @@ def download_segment(args: Tuple) -> Tuple[int, bool, Optional[str], Optional[st
     if success:
         return idx, True, videos[0]['title'][:50], None
     return idx, False, None, error
+
+
+def download_segment_enhanced(segment: Dict, output_path: str,
+                              validate: bool = False,
+                              max_candidates: int = 5) -> Tuple[bool, Optional[str]]:
+    """
+    Enhanced download with smart candidate selection and optional validation.
+
+    Args:
+        segment: Segment dict from script.json
+        output_path: Where to save the video
+        validate: Whether to validate candidates before accepting
+        max_candidates: Maximum candidates to try
+
+    Returns:
+        (success, error_message)
+    """
+    if os.path.exists(output_path):
+        return True, None
+
+    query = segment.get('footage_query', segment.get('text', '')[:50])
+
+    # Get ranked candidates
+    candidates = search_youtube_enhanced(query, max_results=max_candidates + 3)
+
+    if not candidates:
+        return False, "No search results"
+
+    # Try to import validator
+    validate_fn = None
+    if validate:
+        try:
+            from src.footage_validator import quick_validate
+            validate_fn = quick_validate
+        except ImportError:
+            pass
+
+    # Try each candidate
+    for candidate in candidates[:max_candidates]:
+        # Download to temp path first
+        temp_path = output_path + ".temp"
+
+        success, error = download_video(candidate['id'], temp_path)
+        if not success:
+            continue
+
+        # Validate if function provided
+        if validate_fn:
+            is_valid, reason = validate_fn(temp_path, segment.get('text', ''))
+            if not is_valid:
+                try:
+                    os.remove(temp_path)
+                except:
+                    pass
+                continue
+
+        # Success - move to final location
+        try:
+            os.rename(temp_path, output_path)
+        except:
+            import shutil
+            shutil.move(temp_path, output_path)
+
+        return True, None
+
+    return False, "All candidates failed validation"
+
+
+def download_segment_smart(args: Tuple) -> Tuple[int, bool, Optional[str], Optional[str], Optional[str]]:
+    """
+    Smart download with candidate selection and scoring.
+    Returns: (idx, success, title, error, source_type)
+    """
+    idx, segment, footage_dir, footage_file, validate = args
+
+    full_path = f"{footage_dir}/{footage_file}"
+
+    if os.path.exists(full_path):
+        return idx, True, "cached", None, "cached"
+
+    query = segment.get('footage_query', segment.get('text', '')[:50])
+
+    # Get ranked candidates
+    candidates = search_youtube_enhanced(query, max_results=5)
+
+    if not candidates:
+        return idx, False, None, "No search results", None
+
+    # Try to import validator
+    validate_fn = None
+    if validate:
+        try:
+            from src.footage_validator import quick_validate
+            validate_fn = quick_validate
+        except ImportError:
+            pass
+
+    # Try each candidate
+    for candidate in candidates:
+        temp_path = f"{footage_dir}/.temp_{footage_file}"
+
+        success, error = download_video(candidate['id'], temp_path)
+        if not success:
+            continue
+
+        # Validate if function provided
+        if validate_fn:
+            is_valid, reason = validate_fn(temp_path, segment.get('text', ''))
+            if not is_valid:
+                try:
+                    os.remove(temp_path)
+                except:
+                    pass
+                continue
+
+        # Success - move to final location
+        try:
+            os.rename(temp_path, full_path)
+        except:
+            import shutil
+            shutil.move(temp_path, full_path)
+
+        source = "official" if candidate.get('is_official') else "youtube"
+        return idx, True, candidate['title'][:50], None, source
+
+    return idx, False, None, "All candidates failed", None
 
 
 def safe_print(msg: str):
@@ -123,26 +389,33 @@ def main():
             # Direct URL download
             video_id = args.url.split("v=")[-1].split("&")[0]
             print(f"Downloading from URL: {args.url}")
-            if download_video(video_id, output_file):
+            success, error = download_video(video_id, output_file)
+            if success:
                 print(f"Saved to: {output_file}")
                 # Update script with footage filename
                 segment['footage'] = f"segment_{args.segment:02d}.mp4"
                 with open(script_file, 'w') as f:
                     json.dump(script, f, indent=2)
             else:
-                print("Download failed")
+                print(f"Download failed: {error}")
         else:
-            # Search and select
+            # Search with enhanced ranking
             query = args.query or segment.get('footage_query', segment['text'][:50])
-            print(f"Searching: {query}")
-            print("-" * 40)
+            print(f"Original query: {query}")
+            print(f"Enhanced query: {enhance_query(query)}")
+            print("-" * 60)
 
-            videos = search_youtube(query)
+            videos = search_youtube_enhanced(query, max_results=8)
+            print(f"{'Score':<6} {'Channel':<25} {'Title'}")
+            print("-" * 60)
             for i, v in enumerate(videos):
-                print(f"[{i}] {v['title'][:60]}")
+                official = "*" if v.get('is_official') else " "
+                print(f"{v['score']:.2f}{official}  {v['channel'][:23]:<23}  {v['title'][:40]}")
 
-            print("\nUse --url to download a specific video")
-            print(f"Example: python3 src/footage_downloader.py --project {args.project} --segment {args.segment} --url https://youtube.com/watch?v={{VIDEO_ID}}")
+            print()
+            print("* = Official F1 channel")
+            print("\nUse --url to download a specific video:")
+            print(f"  python3 src/footage_downloader.py --project {args.project} --segment {args.segment} --url https://youtube.com/watch?v=VIDEO_ID")
     else:
         # Download all missing footage
         print("=" * 60)

@@ -83,6 +83,69 @@ F1_TEAM_COLORS = {
 # Default text color if no team/driver detected
 F1_DEFAULT_COLOR = "#FFFFFF"
 
+# ============================================================================
+# VISUAL TYPES CONFIG
+# ============================================================================
+
+VISUAL_TYPES = ["footage", "graphic", "animation", "diagram", "library"]
+
+# Default visual type if not specified in script.json
+DEFAULT_VISUAL_TYPE = "footage"
+
+# Graphic generation settings (DALL-E)
+GRAPHIC_SETTINGS = {
+    "backend": "dalle",  # dalle, stability, local
+    "default_style": "technical_diagram",
+    "ken_burns_duration": 5,
+    "ken_burns_effect": "zoom_in"
+}
+
+# AI video generation settings (Runway)
+AI_VIDEO_SETTINGS = {
+    "backend": "runway",  # runway, pika, luma
+    "default_duration": 4,
+    "default_style": "cinematic"
+}
+
+# Manim settings
+MANIM_SETTINGS = {
+    "quality": "high",  # low, medium, high
+    "template_dir": "src/manim_templates"
+}
+
+# Asset library location
+ASSET_LIBRARY_DIR = f"{SHARED_DIR}/assets"
+
+# ============================================================================
+# FOOTAGE VALIDATION CONFIG
+# ============================================================================
+
+VALIDATION_ENABLED = True
+VALIDATION_THRESHOLDS = {
+    "face": 0.4,    # Max face score (0-1), above = reject
+    "text": 0.3,    # Max text score (0-1), above = reject
+    "clip": 0.4,    # Min CLIP score (0-1), below = reject (if enabled)
+}
+
+# Official F1 channels (prioritized in search)
+OFFICIAL_F1_CHANNELS = [
+    "FORMULA 1",
+    "Formula 1",
+    "F1",
+    "Sky Sports F1",
+    "Red Bull Racing",
+    "Mercedes-AMG PETRONAS F1 Team",
+    "Scuderia Ferrari",
+    "McLaren",
+    "Aston Martin Aramco F1 Team",
+    "BWT Alpine F1 Team",
+    "Williams Racing",
+]
+
+# ============================================================================
+# HELPER FUNCTIONS
+# ============================================================================
+
 def get_project_dir(project_name):
     return f"{PROJECTS_DIR}/{project_name}"
 

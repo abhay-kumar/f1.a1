@@ -45,6 +45,27 @@ TOKEN_FILE = f"{SHARED_DIR}/creds/youtube_token.pickle"
 VIDEO_CATEGORY_ID = "17"  # Sports category
 DEFAULT_PRIVACY = "public"
 
+# F1 Fan Content Disclaimer (per F1 guidelines)
+F1_FAN_DISCLAIMER = """
+───────────────────────────────────────────────────────────────────
+⚠️ DISCLAIMER
+
+This video is unofficial fan content created for commentary,
+education, and entertainment purposes. It is not associated with,
+endorsed by, or affiliated with:
+• Formula 1 / Formula One Management (FOM)
+• Fédération Internationale de l'Automobile (FIA)
+• Any Formula 1 team or driver
+
+All F1-related trademarks, footage, and imagery are property of
+their respective owners and are used here under fair use for
+transformative commentary.
+
+For official F1 content: https://www.formula1.com
+For official F1 TV: https://f1tv.formula1.com
+───────────────────────────────────────────────────────────────────
+"""
+
 
 def get_authenticated_service():
     """Authenticate and return YouTube API service"""
@@ -194,9 +215,10 @@ def generate_metadata_from_script(script: Dict) -> Dict:
     if references_section:
         description_parts.append(references_section)
 
+    # Add disclaimer
+    description_parts.append(F1_FAN_DISCLAIMER)
+
     description_parts.extend([
-        "",
-        "─" * 40,
         "",
         "#F1 #Formula1 #Racing #Motorsport",
         "",
