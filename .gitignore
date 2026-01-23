@@ -19,3 +19,5 @@ creds.*
 .env
 .env.*
 thoughts
+
+shared/reddit_ideas.json

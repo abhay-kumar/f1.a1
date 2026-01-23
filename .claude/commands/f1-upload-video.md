@@ -3,7 +3,10 @@
 Upload a completed F1 long-form video to YouTube with auto-generated metadata, references in description, captions, and **auto-generated viral thumbnail**.
 
 ## Input
-Project name: $ARGUMENTS
+
+**Project name** (required): $ARGUMENTS
+
+The project name is the folder name under `projects/` containing the video to upload. This argument is mandatory.
 
 ## Instructions
 
@@ -157,7 +160,7 @@ To re-authenticate, delete the token file: `rm shared/creds/youtube_token.pickle
 ## Example Usage
 
 ```
-/upload-video sustainable-fuels-2026
+/f1-upload-video sustainable-fuels-2026
 ```
 
 This will:
@@ -174,9 +177,9 @@ This will:
 8. Upload video, captions, and thumbnail
 9. Return the YouTube URL
 
-## Differences from /upload-short
+## Differences from /f1-upload-short
 
-| Feature | /upload-short | /upload-video |
+| Feature | /f1-upload-short | /f1-upload-video |
 |---------|---------------|---------------|
 | Format | 9:16 Vertical | 16:9 Horizontal |
 | Duration | ~60 seconds | ~10+ minutes |

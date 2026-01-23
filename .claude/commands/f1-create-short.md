@@ -3,7 +3,10 @@
 Create an F1 short video based on user's prompt. This command handles the entire pipeline from script to final video.
 
 ## User Input
-$ARGUMENTS
+
+**Synopsis** (required): $ARGUMENTS
+
+The synopsis is the topic/story idea for the short video. This argument is mandatory.
 
 ## Instructions
 
@@ -110,3 +113,6 @@ Final video: `projects/{name}/output/final.mp4`
 - Framerate: 30fps
 - Audio: Voiceover + background music
 - Captions: Auto-generated from script text
+
+### Next Step
+After the video is created, suggest the user run `/f1-upload-short` to upload to YouTube.

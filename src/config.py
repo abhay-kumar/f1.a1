@@ -1,8 +1,9 @@
 """
 Shared configuration for F1 short video creator
 """
-import os
+
 import multiprocessing
+import os
 
 BASE_DIR = "/Users/abhaykumar/Documents/f1.ai"
 PROJECTS_DIR = f"{BASE_DIR}/projects"
@@ -33,7 +34,7 @@ OUTPUT_HEIGHT = 1920  # 9:16 vertical
 # Music Config
 BACKGROUND_MUSIC = f"{SHARED_DIR}/music/background.mp3"
 BACKGROUND_MUSIC_LONGFORM = f"{SHARED_DIR}/music/background_longform.mp3"  # Optional separate music for long-form
-MUSIC_VOLUME = 0.15
+MUSIC_VOLUME = 0.08  # Lowered from 0.15 for better voice clarity
 MUSIC_VOLUME_LONGFORM = 0.05  # Very quiet for long-form content (5%)
 
 # Outro Audio (reusable for all long-form videos)
@@ -48,36 +49,35 @@ LONGFORM_OUTPUT_WIDTH_HD = 1920
 LONGFORM_OUTPUT_HEIGHT_HD = 1080
 LONGFORM_VIDEO_BITRATE_4K = "20M"  # Higher quality for 4K
 LONGFORM_VIDEO_BITRATE_HD = "12M"  # High quality for HD
-LONGFORM_AUDIO_BITRATE = "256k"    # Better audio for long-form
-LONGFORM_DURATION_TARGET = 600     # ~10 minutes default
+LONGFORM_AUDIO_BITRATE = "256k"  # Better audio for long-form
+LONGFORM_DURATION_TARGET = 600  # ~10 minutes default
 
 # F1 Team Colors (official hex codes for team radio style text)
 F1_TEAM_COLORS = {
     # Current teams
-    "red bull": "#3671C6",      # Red Bull Racing blue
+    "red bull": "#3671C6",  # Red Bull Racing blue
     "redbull": "#3671C6",
-    "mclaren": "#FF8000",       # McLaren papaya
-    "ferrari": "#E8002D",       # Ferrari red
-    "mercedes": "#27F4D2",      # Mercedes teal
+    "mclaren": "#FF8000",  # McLaren papaya
+    "ferrari": "#E8002D",  # Ferrari red
+    "mercedes": "#27F4D2",  # Mercedes teal
     "aston martin": "#229971",  # Aston Martin green
-    "alpine": "#FF87BC",        # Alpine pink
-    "williams": "#64C4FF",      # Williams blue
-    "haas": "#B6BABD",          # Haas silver
-    "kick sauber": "#52E252",   # Sauber green
+    "alpine": "#FF87BC",  # Alpine pink
+    "williams": "#64C4FF",  # Williams blue
+    "haas": "#B6BABD",  # Haas silver
+    "kick sauber": "#52E252",  # Sauber green
     "sauber": "#52E252",
-
     # Drivers (mapped to their teams)
-    "vettel": "#3671C6",        # Red Bull era
-    "webber": "#3671C6",        # Red Bull
-    "norris": "#FF8000",        # McLaren
-    "piastri": "#FF8000",       # McLaren
-    "verstappen": "#3671C6",    # Red Bull
-    "hamilton": "#27F4D2",      # Mercedes
-    "leclerc": "#E8002D",       # Ferrari
-    "sainz": "#E8002D",         # Ferrari
-    "alonso": "#229971",        # Aston Martin
-    "russell": "#27F4D2",       # Mercedes
-    "perez": "#3671C6",         # Red Bull
+    "vettel": "#3671C6",  # Red Bull era
+    "webber": "#3671C6",  # Red Bull
+    "norris": "#FF8000",  # McLaren
+    "piastri": "#FF8000",  # McLaren
+    "verstappen": "#3671C6",  # Red Bull
+    "hamilton": "#27F4D2",  # Mercedes
+    "leclerc": "#E8002D",  # Ferrari
+    "sainz": "#E8002D",  # Ferrari
+    "alonso": "#229971",  # Aston Martin
+    "russell": "#27F4D2",  # Mercedes
+    "perez": "#3671C6",  # Red Bull
 }
 
 # Default text color if no team/driver detected
@@ -97,20 +97,20 @@ GRAPHIC_SETTINGS = {
     "backend": "dalle",  # dalle, stability, local
     "default_style": "technical_diagram",
     "ken_burns_duration": 5,
-    "ken_burns_effect": "zoom_in"
+    "ken_burns_effect": "zoom_in",
 }
 
 # AI video generation settings (Runway)
 AI_VIDEO_SETTINGS = {
     "backend": "runway",  # runway, pika, luma
     "default_duration": 4,
-    "default_style": "cinematic"
+    "default_style": "cinematic",
 }
 
 # Manim settings
 MANIM_SETTINGS = {
     "quality": "high",  # low, medium, high
-    "template_dir": "src/manim_templates"
+    "template_dir": "src/manim_templates",
 }
 
 # Asset library location
@@ -122,9 +122,9 @@ ASSET_LIBRARY_DIR = f"{SHARED_DIR}/assets"
 
 VALIDATION_ENABLED = True
 VALIDATION_THRESHOLDS = {
-    "face": 0.4,    # Max face score (0-1), above = reject
-    "text": 0.3,    # Max text score (0-1), above = reject
-    "clip": 0.4,    # Min CLIP score (0-1), below = reject (if enabled)
+    "face": 0.4,  # Max face score (0-1), above = reject
+    "text": 0.3,  # Max text score (0-1), above = reject
+    "clip": 0.4,  # Min CLIP score (0-1), below = reject (if enabled)
 }
 
 # Official F1 channels (prioritized in search)
@@ -146,8 +146,10 @@ OFFICIAL_F1_CHANNELS = [
 # HELPER FUNCTIONS
 # ============================================================================
 
+
 def get_project_dir(project_name):
     return f"{PROJECTS_DIR}/{project_name}"
+
 
 def get_elevenlabs_key():
     with open(ELEVENLABS_KEY_FILE) as f:

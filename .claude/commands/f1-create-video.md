@@ -3,7 +3,10 @@
 Create a professional F1 long-form video (~10 minutes, 16:9 horizontal, up to 4K resolution) based on user's prompt. This command handles the entire pipeline from research to final video.
 
 ## User Input
-$ARGUMENTS
+
+**Synopsis** (required): $ARGUMENTS
+
+The synopsis is the topic/story idea for the long-form video. This argument is mandatory.
 
 ## Instructions
 
@@ -688,3 +691,8 @@ For long-form videos, do NOT burn subtitles into the video. Instead:
 - Voice ID: c6SfcYrb2t09NHXiT80T
 - Model: eleven_multilingual_v2
 - Best for: Long-form documentary narration, authoritative delivery
+
+---
+
+## Next Step
+After the video is created, suggest the user run `/f1-upload-video` to upload to YouTube.
