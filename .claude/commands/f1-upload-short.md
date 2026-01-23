@@ -3,7 +3,10 @@
 Upload a completed F1 short video to YouTube with auto-generated metadata.
 
 ## Input
-Project name: $ARGUMENTS
+
+**Project name** (required): $ARGUMENTS
+
+The project name is the folder name under `projects/` containing the video to upload. This argument is mandatory.
 
 ## Instructions
 
@@ -55,7 +58,7 @@ First upload will open a browser for Google sign-in to grant YouTube access.
 ## Example Usage
 
 ```
-/upload-short stolen-crown
+/f1-upload-short stolen-crown
 ```
 
 This will:
