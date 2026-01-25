@@ -76,10 +76,11 @@ Once user confirms story selection, create the daily news video:
    # Generate voiceovers
    python3 src/audio_generator.py --project f1-daily-news-{date}
    
-   # Copy reusable outro footage (DO THIS BEFORE downloading other footage)
+   # Copy reusable intro and outro footage (DO THIS BEFORE downloading other footage)
+   cp shared/assets/daily-news/intro.mp4 projects/f1-daily-news-{date}/footage/segment_00.mp4
    cp shared/assets/daily-news/outro.mp4 projects/f1-daily-news-{date}/footage/segment_{outro_index}.mp4
    
-   # Download footage for all segments EXCEPT the outro (it's pre-copied)
+   # Download footage for all segments EXCEPT intro (segment_00) and outro (they're pre-copied)
    python3 src/footage_downloader.py --project f1-daily-news-{date}
    
    # If any segment fails, retry with alternative query:
@@ -110,6 +111,7 @@ Once user confirms story selection, create the daily news video:
 - **Specific details**: Include names, numbers, dates
 - **Natural flow**: Stories should transition smoothly
 - **Variety**: Mix team news, driver news, technical updates, controversies
+- **NEVER use the word "Quote"**: When including quotes, integrate them naturally into the narration. Instead of "Quote: 'I'll never forget this'", write "In his words: I'll never forget this" or simply state the quote directly as part of the narrative.
 
 ### Example News Segment
 
@@ -128,6 +130,7 @@ This builds brand recognition and viewer expectations.
 ### Shared Assets
 
 Pre-downloaded footage for consistent elements is stored in `shared/assets/daily-news/`:
+- `intro.mp4` - F1 cars/grid footage for the intro segment (segment_00)
 - `outro.mp4` - F1 racing action montage for the outro segment
 
 These assets should be copied to each new project's footage folder to avoid redundant downloads and ensure visual consistency across episodes.

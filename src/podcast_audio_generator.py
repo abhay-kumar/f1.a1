@@ -165,33 +165,55 @@ def main():
     with open(script_file) as f:
         script = json.load(f)
 
-    # Get host configurations from script or use defaults
-    hosts = script.get("hosts", DEFAULT_HOSTS)
+    # Determine if single-host or multi-host format
+    is_single_host = "host" in script and "hosts" not in script
+
+    if is_single_host:
+        # Single host format - use the "host" object
+        host_config = script["host"]
+        host_name = host_config.get("name", "host").lower()
+        hosts = {
+            host_name: {
+                "voice_id": host_config["voice_id"],
+                "description": host_config.get("description", "Podcast host"),
+            }
+        }
+    else:
+        # Multi-host format - use "hosts" dictionary or defaults
+        hosts = script.get("hosts", DEFAULT_HOSTS)
 
     print("=" * 60)
     print(f"Podcast Audio Generator - Project: {args.project}")
-    print("Engine: ElevenLabs (Multi-voice)")
+    print(
+        "Engine: ElevenLabs (Multi-voice)"
+        if not is_single_host
+        else "Engine: ElevenLabs (Single-voice)"
+    )
     print(
         f"Concurrency: {'Sequential' if args.sequential else f'{args.workers} workers'}"
     )
     print("-" * 60)
-    print("Hosts:")
-    for host_name, host_config in hosts.items():
-        print(
-            f"  {host_name.capitalize()}: {host_config.get('description', 'No description')}"
-        )
+    if is_single_host:
+        print(f"Host: {script['host'].get('description', 'Podcast host')}")
+    else:
+        print("Hosts:")
+        for h_name, h_config in hosts.items():
+            print(
+                f"  {h_name.capitalize()}: {h_config.get('description', 'No description')}"
+            )
     print("=" * 60)
 
     segments = script["segments"]
 
-    # Validate all segments have valid hosts
-    for i, segment in enumerate(segments):
-        host = segment.get("host", "").lower()
-        if host not in hosts:
-            print(
-                f"Error: Segment {i + 1} has unknown host '{host}'. Valid hosts: {list(hosts.keys())}"
-            )
-            sys.exit(1)
+    # Validate all segments have valid hosts (only for multi-host format)
+    if not is_single_host:
+        for i, segment in enumerate(segments):
+            host = segment.get("host", "").lower()
+            if host not in hosts:
+                print(
+                    f"Error: Segment {i + 1} has unknown host '{host}'. Valid hosts: {list(hosts.keys())}"
+                )
+                sys.exit(1)
 
     generated = 0
     cached = 0
@@ -200,8 +222,14 @@ def main():
     # Prepare tasks with voice IDs
     tasks = []
     for i, segment in enumerate(segments):
-        host = segment.get("host", "").lower()
-        voice_id = hosts[host]["voice_id"]
+        if is_single_host:
+            # Single host - use the host's voice for all segments
+            host_name = list(hosts.keys())[0]
+            voice_id = hosts[host_name]["voice_id"]
+        else:
+            # Multi-host - get voice from segment's host field
+            host = segment.get("host", "").lower()
+            voice_id = hosts[host]["voice_id"]
         audio_path = f"{audio_dir}/segment_{i:02d}.mp3"
         tasks.append((i, segment, audio_path, voice_id))
 
@@ -212,9 +240,13 @@ def main():
         for task in tasks:
             idx = task[0]
             segment = task[1]
-            host = segment.get("host", "").capitalize()
+            if is_single_host:
+                label = segment.get("context", "Segment")[:30]
+            else:
+                host = segment.get("host", "").capitalize()
+                label = f"{host}: {segment.get('context', 'Dialogue')[:30]}"
             print(
-                f"[{idx + 1}/{len(segments)}] {host}: {segment.get('context', 'Dialogue')[:30]}...",
+                f"[{idx + 1}/{len(segments)}] {label}...",
                 end=" ",
                 flush=True,
             )
@@ -241,21 +273,26 @@ def main():
             for future in as_completed(future_to_idx):
                 idx, success, duration, status = future.result()
                 segment = segments[idx]
-                host = segment.get("host", "").capitalize()
-                context = segment.get("context", "Dialogue")[:30]
+                context = segment.get("context", "Segment")[:30]
+
+                if is_single_host:
+                    label = context
+                else:
+                    host = segment.get("host", "").capitalize()
+                    label = f"{host}: {context}"
 
                 if status == "cached":
                     print(
-                        f"[{idx + 1}/{len(segments)}] {host}: Cached ({duration:.1f}s) - {context}"
+                        f"[{idx + 1}/{len(segments)}] Cached ({duration:.1f}s) - {label}"
                     )
                     cached += 1
                 elif success:
                     print(
-                        f"[{idx + 1}/{len(segments)}] {host}: Generated ({duration:.1f}s) - {context}"
+                        f"[{idx + 1}/{len(segments)}] Generated ({duration:.1f}s) - {label}"
                     )
                     generated += 1
                 else:
-                    print(f"[{idx + 1}/{len(segments)}] {host}: Failed - {status}")
+                    print(f"[{idx + 1}/{len(segments)}] Failed - {status} - {label}")
                     failed += 1
 
                 results[idx] = (success, duration)
