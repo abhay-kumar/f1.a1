@@ -21,3 +21,8 @@ creds.*
 thoughts
 
 shared/reddit_ideas.json
+
+# Large asset files
+shared/assets/**/*.mp4
+shared/assets/**/*.mov
+shared/assets/**/*.avi

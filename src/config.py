@@ -34,7 +34,7 @@ OUTPUT_HEIGHT = 1920  # 9:16 vertical
 # Music Config
 BACKGROUND_MUSIC = f"{SHARED_DIR}/music/background.mp3"
 BACKGROUND_MUSIC_LONGFORM = f"{SHARED_DIR}/music/background_longform.mp3"  # Optional separate music for long-form
-MUSIC_VOLUME = 0.08  # Lowered from 0.15 for better voice clarity
+MUSIC_VOLUME = 0.04  # Lowered from 0.08 to ensure voiceover dominates
 MUSIC_VOLUME_LONGFORM = 0.05  # Very quiet for long-form content (5%)
 
 # Outro Audio (reusable for all long-form videos)
