@@ -11,31 +11,16 @@ You are creating a daily F1 news update short video. This command orchestrates t
 
 ### Phase 1: Find Trending Stories
 
-**Time Range**: Always search for the past 24 hours (daily news format).
+Use `/f1-find-content day` to discover trending F1 stories from the past 24 hours.
 
-1. **Load Existing Ideas**: Read `shared/reddit_ideas.json` to check what's already been proposed
+This will:
+- Search Reddit's r/formula1 for popular discussions from the past 24 hours
+- Filter out duplicate ideas already in `shared/reddit_ideas.json`
+- Present a ranked list of newsworthy stories
 
-2. **Search Reddit**: Find popular F1 discussions from the specified time range:
-   - Use web search: `site:reddit.com/r/formula1 popular today 2026`, `reddit formula1 trending`
-   - Look for breaking news, controversies, team updates, driver news
-   - Focus on stories from the past 24 hours for "daily" feel
+After reviewing the ideas from `/f1-find-content day`:
 
-3. **Filter and Rank**: Identify the top stories that:
-   - Are newsworthy and current
-   - Can be explained in 1-2 sentences each
-   - Have available footage (team launches, races, driver content)
-   - Haven't been covered in recent videos
-
-4. **Present Stories**: Show the user a numbered list of potential stories:
-   ```
-   ## Today's F1 News Stories ([DATE])
-   
-   1. **[Headline]** - [1-2 sentence summary]
-   2. **[Headline]** - [1-2 sentence summary]
-   ...
-   ```
-
-5. **CHECKPOINT - User Selection**: 
+1. **CHECKPOINT - User Selection**: 
    - Ask user which stories to include (by number or ID)
    - Recommend 6-8 stories for a ~60-90 second video
    - Wait for explicit confirmation before proceeding
@@ -91,7 +76,10 @@ Once user confirms story selection, create the daily news video:
    # Generate voiceovers
    python3 src/audio_generator.py --project f1-daily-news-{date}
    
-   # Download footage for all segments
+   # Copy reusable outro footage (DO THIS BEFORE downloading other footage)
+   cp shared/assets/daily-news/outro.mp4 projects/f1-daily-news-{date}/footage/segment_{outro_index}.mp4
+   
+   # Download footage for all segments EXCEPT the outro (it's pre-copied)
    python3 src/footage_downloader.py --project f1-daily-news-{date}
    
    # If any segment fails, retry with alternative query:
@@ -103,6 +91,8 @@ Once user confirms story selection, create the daily news video:
    # Assemble final video
    python3 src/video_assembler.py --project f1-daily-news-{date}
    ```
+   
+   **IMPORTANT**: The outro footage is stored at `shared/assets/daily-news/outro.mp4` and should be copied to the project's footage folder as the last segment BEFORE running the footage downloader. This ensures consistency across all daily news videos and avoids unnecessary downloads.
 
 6. **Footage Verification**: 
    - Check that downloaded footage matches each news story
@@ -134,6 +124,13 @@ The **intro** and **outro** segments are designed to be consistent across all da
 - Outro: "That's your F1 Daily News. Subscribe, hit the bell..."
 
 This builds brand recognition and viewer expectations.
+
+### Shared Assets
+
+Pre-downloaded footage for consistent elements is stored in `shared/assets/daily-news/`:
+- `outro.mp4` - F1 racing action montage for the outro segment
+
+These assets should be copied to each new project's footage folder to avoid redundant downloads and ensure visual consistency across episodes.
 
 ### Update Reddit Ideas
 
