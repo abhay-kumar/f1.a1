@@ -54,7 +54,7 @@ LONGFORM_DURATION_TARGET = 600  # ~10 minutes default
 
 # F1 Team Colors (official hex codes for team radio style text)
 F1_TEAM_COLORS = {
-    # Current teams
+    # Current teams (2026 grid)
     "red bull": "#3671C6",  # Red Bull Racing blue
     "redbull": "#3671C6",
     "mclaren": "#FF8000",  # McLaren papaya
@@ -64,20 +64,29 @@ F1_TEAM_COLORS = {
     "alpine": "#FF87BC",  # Alpine pink
     "williams": "#64C4FF",  # Williams blue
     "haas": "#B6BABD",  # Haas silver
-    "kick sauber": "#52E252",  # Sauber green
-    "sauber": "#52E252",
-    # Drivers (mapped to their teams)
+    "cadillac": "#C4A747",  # Cadillac gold/crest
+    "audi": "#BB0A1E",  # Audi red
+    "racing bulls": "#6692FF",  # Racing Bulls blue
+    # Drivers (mapped to their 2026 teams)
     "vettel": "#3671C6",  # Red Bull era
     "webber": "#3671C6",  # Red Bull
     "norris": "#FF8000",  # McLaren
     "piastri": "#FF8000",  # McLaren
     "verstappen": "#3671C6",  # Red Bull
-    "hamilton": "#27F4D2",  # Mercedes
+    "hadjar": "#3671C6",  # Red Bull
+    "hamilton": "#E8002D",  # Ferrari (2026)
     "leclerc": "#E8002D",  # Ferrari
-    "sainz": "#E8002D",  # Ferrari
     "alonso": "#229971",  # Aston Martin
     "russell": "#27F4D2",  # Mercedes
-    "perez": "#3671C6",  # Red Bull
+    "antonelli": "#27F4D2",  # Mercedes
+    "perez": "#C4A747",  # Cadillac (2026)
+    "bottas": "#C4A747",  # Cadillac (2026)
+    "ocon": "#B6BABD",  # Haas (2026)
+    "bortoleto": "#BB0A1E",  # Audi
+    "hulkenberg": "#BB0A1E",  # Audi
+    "colapinto": "#FF87BC",  # Alpine
+    "lawson": "#6692FF",  # Racing Bulls
+    "palou": "#FF8000",  # McLaren (legal context)
 }
 
 # Default text color if no team/driver detected

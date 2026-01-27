@@ -11,7 +11,7 @@ Create an F1 Burnouts podcast episode with the host discussing the provided topi
 The podcast features a single passionate host speaking directly to the audience:
 
 ### The Host of F1 Burnouts
-- **Voice ID**: `nPczCjzI2devNBz1zQrb` (ElevenLabs)
+- **Voice**: Charon (Gemini TTS) - Informative, engaging, authoritative
 - **Background**: Expert in both engineering and F1 motorsport regulations/history
 - **Team Affinity**: Proud McLaren fan (and not shy about it!) but respects all teams
 - **Core Values**: 
@@ -27,6 +27,32 @@ The podcast features a single passionate host speaking directly to the audience:
   - Brutal honesty when needed
   - Family-friendly (no swearing) - engages kids and adults alike
 - **Speaking Style**: Conversational, as if talking directly to a friend about F1
+
+## TTS Engine: Google Gemini 2.5
+
+This podcast uses **Google Gemini 2.5 TTS** with **SSML enhancement** for immersive, expressive audio:
+
+### Why Gemini TTS?
+- **Free tier available** (gemini-2.5-flash-preview-tts)
+- **Emotion markers** directly in text: `[excited]`, `[empathetic]`, `[speaking slowly]`
+- **SSML support** for pauses, emphasis, and prosody control
+- **Natural speech** with context-aware pacing
+
+### SSML Features (Auto-Applied)
+The `ssml_generator.py` module automatically enhances scripts with:
+- **Strategic pauses** after key phrases and questions
+- **Emphasis** on important words (incredible, billion, first, etc.)
+- **Emotion markers** based on segment emotion field
+- **Natural breathing points** for long sentences
+- **Punctuation enhancement** for expressive delivery
+
+### Available Voices
+- **Charon** (default) - Informative, authoritative (ideal for podcasts)
+- **Kore** - Firm, confident
+- **Puck** - Upbeat, energetic
+- **Zephyr** - Bright, lively
+- **Enceladus** - Breathy, intimate
+- **Aoede** - Breezy, conversational
 
 ## Instructions
 
@@ -52,9 +78,10 @@ projects/{project-name}/
      "title": "Podcast Episode Title",
      "format": "podcast",
      "duration_target": 1200,
+     "tts_engine": "gemini",
+     "voice": "Charon",
      "host": {
        "name": "Host",
-       "voice_id": "nPczCjzI2devNBz1zQrb",
        "description": "The host of F1 Burnouts - engineering expert and F1 historian"
      },
      "segments": [
@@ -87,25 +114,49 @@ projects/{project-name}/
    - **Target duration**: ~20 minutes (approximately 3000-3500 words total)
    - **Structure**: Hook → Intro → Deep dives → Reflections → Sign-off
 
-5. **ElevenLabs TTS Compatibility** (CRITICAL):
-   - **NO bracketed expressions**: Never use `[laughs]`, `[sighs]`, `[chuckles]`, `[gasps]`, etc. - ElevenLabs reads these literally as words
-   - **NO stage directions**: Avoid `[pause]`, `[excited]`, `[whispers]` in the text
-   - **Express emotions through words instead**:
-     - Instead of `[laughs]`: "Ha!", "Oh, that's funny", "I have to laugh at that", "That cracks me up"
-     - Instead of `[sighs]`: "Honestly...", "Look...", "I mean...", use trailing off with ellipsis
-     - Instead of `[chuckles]`: "Heh", "That's amusing", weave humor into word choice
-     - Instead of `[gasps]`: "Wait, what?!", "Hold on!", "Are you kidding me?!"
-     - Instead of `[pause]`: Use "..." or start new sentence, or "Now..." / "So..."
-   - **Use punctuation for pacing**: Ellipses (...) for trailing off, dashes (—) for interruption, exclamation marks for emphasis
-   - **Emotion through vocabulary**: Choose words that inherently carry the emotion rather than describing the emotion
+5. **Gemini TTS Script Optimization** (IMPORTANT):
+   
+   Unlike ElevenLabs, Gemini TTS **supports** emotion markers and SSML tags. Use them strategically:
+   
+   **Emotion markers in text** (Gemini reads these as instructions, not words):
+   - `[excited]` - For high-energy moments
+   - `[empathetic]` - For heartfelt content
+   - `[speaking slowly]` - For emphasis or dramatic effect
+   - `[whispering]` - For intimate asides
+   - `[laughing]` - For genuine humor moments
+   - `[sighing]` - For exasperation or reflection
+   
+   **When to use emotion markers**:
+   - At the START of emotionally distinct passages
+   - Sparingly - one per paragraph maximum
+   - For dramatic effect, not every sentence
+   
+   **Example with markers**:
+   ```
+   "[excited] And here's where it gets absolutely wild!"
+   "[speaking slowly] Think about that for a moment... a billion cars."
+   "[laughing] Oh, that's so typically Ferrari, isn't it?"
+   ```
+   
+   **Punctuation for natural pacing**:
+   - Ellipses (...) for trailing off or building suspense
+   - Dashes (—) for interruptions or asides
+   - Exclamation marks for emphasis (use sparingly)
+   - Question marks with pauses for rhetorical effect
+   
+   **The SSML generator will automatically add**:
+   - Pauses after questions
+   - Emphasis on key words
+   - Breath marks for long sentences
+   - Micro-pauses at natural break points
 
-6. **Emotional Markers** (for TTS expression):
-   - `emotion: "energetic"` - Exciting moments, celebrations
-   - `emotion: "contemplative"` - Thoughtful analysis, historical reflection
-   - `emotion: "humorous"` - Sarcastic takes, funny observations
-   - `emotion: "heartfelt"` - Tributes, farewells, meaningful moments
-   - `emotion: "serious"` - Critical analysis, important issues
-   - `emotion: "passionate"` - Climate/women in F1 advocacy, engineering appreciation
+6. **Emotional Markers** (segment metadata for SSML enhancement):
+   - `emotion: "energetic"` - Exciting moments, celebrations → `[excited]` marker
+   - `emotion: "contemplative"` - Thoughtful analysis → `[speaking slowly]` marker
+   - `emotion: "humorous"` - Sarcastic takes → `[playful]` marker
+   - `emotion: "heartfelt"` - Tributes, farewells → `[empathetic]` marker
+   - `emotion: "serious"` - Critical analysis → `[serious]` marker
+   - `emotion: "passionate"` - Advocacy, engineering appreciation → `[passionate]` marker
 
 7. **CHECKPOINT - Script Review**:
    - Present the complete script to the user
@@ -114,9 +165,17 @@ projects/{project-name}/
    - **STOP and wait for user approval**
    - Make any requested changes before proceeding
 
-8. **Generate Audio**:
+8. **Generate Audio** (using Gemini TTS):
    ```bash
-   python3 src/podcast_audio_generator.py --project {name}
+   # Default: Flash model (free), with SSML enhancement
+   python3 src/gemini_podcast_audio_generator.py --project {name}
+   
+   # Options:
+   # --model pro      # Use Pro model (paid, highest quality)
+   # --model flash    # Use Flash model (free, default)
+   # --voice Kore     # Change voice (default: Charon)
+   # --no-ssml        # Disable SSML enhancement
+   # --sequential     # Process segments one at a time
    ```
 
 9. **Verify Output**:
@@ -168,34 +227,42 @@ projects/{project-name}/
 - "As they exit the sport, let's remember what they contributed..."
 - "Every team has a story, and theirs matters..."
 
-### Example Segment Flow
+### Example Segment Flow (with Gemini emotion markers)
 
 ```
 [emotion: energetic]
-"Welcome back to F1 Burnouts! I'm your host, and oh boy, do we have a lot to unpack today..."
+"[excited] Welcome back to F1 Burnouts! I'm your host, and oh boy, do we have a lot to unpack today..."
 
 [emotion: intrigued]
 "Now, here's where it gets fascinating. You see, the regulations specifically state... but what Red Bull figured out was..."
 
 [emotion: humorous]
-"And in news that surprised absolutely everyone - and by everyone, I mean no one - we saw another strategic masterclass from Ferrari. And yes, that was sarcasm."
+"[laughing] And in news that surprised absolutely everyone - and by everyone, I mean no one - we saw another strategic masterclass from Ferrari."
 
 [emotion: heartfelt]
-"But jokes aside, watching that driver cross the line for the last time... there's something about this sport that just grabs you, you know?"
+"[empathetic] But jokes aside, watching that driver cross the line for the last time... there's something about this sport that just grabs you, you know?"
 
 [emotion: passionate]
 "And this is why F1's sustainability initiatives matter. It's not just about racing - it's about proving that performance and environmental responsibility can coexist."
 
 [emotion: energetic]
-"That's all for today's episode of F1 Burnouts. Until next time, keep the rubber on the track!"
+"[excited] That's all for today's episode of F1 Burnouts. Until next time, keep the rubber on the track!"
 ```
 
 ### Output
 
 Final audio: `projects/{name}/output/final.mp3`
 - Format: MP3, high quality (256kbps)
+- Sample rate: 24kHz
 - Duration: ~20 minutes
-- Channels: Stereo
+- Channels: Mono (Gemini TTS output)
+
+### API Key Setup
+
+Get your free Google AI API key:
+1. Visit: https://aistudio.google.com/apikey
+2. Create/copy your API key
+3. Save it: `echo 'YOUR_KEY' > shared/creds/google_ai`
 
 ### After Creation
 
