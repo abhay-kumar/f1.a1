@@ -73,7 +73,7 @@ Once user confirms story selection, create the daily news video:
 
 5. **Video Production Pipeline**:
    ```bash
-   # Generate voiceovers
+   # Generate voiceovers with Gemini TTS
    python3 src/audio_generator.py --project f1-daily-news-{date}
    
    # Copy reusable intro and outro footage (DO THIS BEFORE downloading other footage)
@@ -83,8 +83,14 @@ Once user confirms story selection, create the daily news video:
    # Download footage for all segments EXCEPT intro (segment_00) and outro (they're pre-copied)
    python3 src/footage_downloader.py --project f1-daily-news-{date}
    
-   # If any segment fails, retry with alternative query:
+   # Verify downloaded footage titles match intended content
+   python3 src/footage_downloader.py --project f1-daily-news-{date} --list
+   
+   # If any segment has wrong footage, retry (auto-downloads top result):
    python3 src/footage_downloader.py --project f1-daily-news-{date} --segment {id} --query "alternative search"
+   
+   # Or preview candidates first without downloading:
+   python3 src/footage_downloader.py --project f1-daily-news-{date} --segment {id} --query "alternative search" --dry-run
    
    # Extract preview frames
    python3 src/preview_extractor.py --project f1-daily-news-{date}
@@ -96,8 +102,14 @@ Once user confirms story selection, create the daily news video:
    **IMPORTANT**: The outro footage is stored at `shared/assets/daily-news/outro.mp4` and should be copied to the project's footage folder as the last segment BEFORE running the footage downloader. This ensures consistency across all daily news videos and avoids unnecessary downloads.
 
 6. **Footage Verification**: 
-   - Check that downloaded footage matches each news story
-   - Re-download with different queries if footage is incorrect
+   - Run `--list` first to check downloaded video titles match each news story
+   - Prefer official F1 channel footage over fan channels (fan channels often have screen recordings or news anchors)
+   - For team-specific footage, use subtitle search on broad official videos:
+     ```bash
+     yt-dlp --write-auto-sub --sub-lang en --skip-download --sub-format vtt -o /tmp/subs "URL"
+     grep -i "team name" /tmp/subs*.vtt
+     ```
+   - Delete old previews (`rm previews/segNN_*.jpg`) before re-extracting after footage replacement
    - Update `footage_start` timestamps as needed
 
 7. **Final Output**:

@@ -51,47 +51,75 @@ f1.ai/
    - Only continue to step 5 after explicit user approval
 
 5. **Download Footage**: Use yt-dlp to find and download clips
-6. **Extract Previews**: Generate thumbnail frames to verify content matches
-7. **Verify Footage**: CRITICAL - Check preview images to ensure:
+6. **Verify Footage via `--list`**: CRITICAL - After downloading, run `--list` to check the actual YouTube video titles match the intended content. Fan channels often have screen recordings or wrong content.
+7. **Fix Mismatched Footage**: If a title doesn't match:
+   - Prefer official F1 channel footage over fan channels
+   - For team-specific footage, download a broad official video (e.g., shakedown highlights) and use subtitle search to find the right timestamp:
+     ```bash
+     yt-dlp --write-auto-sub --sub-lang en --skip-download --sub-format vtt -o /tmp/subs "https://youtube.com/watch?v=VIDEO_ID"
+     grep -i "team name" /tmp/subs*.vtt
+     ```
+   - Delete old previews (`rm previews/segNN_*.jpg`) before re-extracting
+8. **Extract Previews**: Generate thumbnail frames and visually verify:
    - Footage matches the narrative (not wrong era/drivers)
    - Timestamp shows the actual moment needed
    - Update `footage_start` based on visual verification
 
-8. **Generate Audio**: Use ElevenLabs API (caches to avoid re-generation)
-9. **Assemble Video**: Run video assembler with:
+9. **Generate Audio**: Use Gemini TTS with Alnilam voice (caches to avoid re-generation)
+10. **Assemble Video**: Run video assembler with:
    - Consistent 30fps (avoids timestamp issues)
    - Blur-pad effect (no cropping)
    - Background music mixed at 15%
    - GPU encoding (VideoToolbox)
 
-10. **Verify Final Output**: Check that:
+11. **Verify Final Output**: Check that:
     - Video and audio durations match
     - Video plays correctly throughout
     - Content syncs with narration
 
 ### Critical Lessons Learned
 
-1. **Always verify footage with preview images** - YouTube search often returns wrong/related videos
-2. **Force consistent framerate (30fps)** - Mixed framerates cause audio/video desync
-3. **Use `split` filter in FFmpeg** - Can't consume same stream twice without splitting
-4. **Re-encode during concat** - Stream copy causes timestamp corruption with mixed sources
-5. **Cache audio files** - Don't regenerate voiceovers during video editing iterations
-6. **Check video/audio stream durations** - They must match in final output
+1. **Always prefer official F1 channel footage** - Fan channels often have screen recordings with cursors, news anchors, or low-quality re-uploads
+2. **Use `--list` after downloading to verify titles** - Catches mismatches instantly without opening preview images
+3. **Use subtitle search for team-specific timestamps** - Download subtitles with `yt-dlp --write-auto-sub` and grep for team/driver names instead of scanning preview frames
+4. **Delete old previews before re-extracting** - Preview images are cached; stale images will show after footage replacement
+5. **Force consistent framerate (30fps)** - Mixed framerates cause audio/video desync
+6. **Use `split` filter in FFmpeg** - Can't consume same stream twice without splitting
+7. **Re-encode during concat** - Stream copy causes timestamp corruption with mixed sources
+8. **Cache audio files** - Don't regenerate voiceovers during video editing iterations
+9. **Check video/audio stream durations** - They must match in final output
 
 ### API Keys Location
-- ElevenLabs: `shared/creds/elevenlabs`
+- Gemini: `shared/creds/google_ai` (free at https://aistudio.google.com/apikey)
+- ElevenLabs (fallback): `shared/creds/elevenlabs`
 
 ### Voice Settings
-- Voice: Bradford (NNl6r8mD7vthiJatiJt1) - Expressive British storyteller
-- Model: eleven_multilingual_v2
+- Engine: Google Gemini TTS (free)
+- Voice: Alnilam (Male, friendly, clean American voice)
+- Model: gemini-2.5-flash-preview-tts
 
 ### Commands to Use
 ```bash
-# Generate audio (run once, caches results)
+# Generate audio with Gemini TTS (run once, caches results)
 python3 src/audio_generator.py --project {name}
 
-# Download footage for a segment
+# Or use ElevenLabs as fallback
+# python3 src/audio_generator.py --project {name} --engine elevenlabs
+
+# Download all footage
+python3 src/footage_downloader.py --project {name}
+
+# Verify downloaded footage titles
+python3 src/footage_downloader.py --project {name} --list
+
+# Re-download a specific segment (auto-downloads top result)
 python3 src/footage_downloader.py --project {name} --segment {id} --query "search terms"
+
+# Preview candidates without downloading
+python3 src/footage_downloader.py --project {name} --segment {id} --query "search terms" --dry-run
+
+# Download specific YouTube video by URL
+python3 src/footage_downloader.py --project {name} --segment {id} --url "https://youtube.com/watch?v=VIDEO_ID"
 
 # Extract preview frames
 python3 src/preview_extractor.py --project {name}
