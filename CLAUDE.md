@@ -9,7 +9,7 @@ F1.ai is an automated pipeline for creating F1-themed YouTube videos. It support
 1. **Shorts** (60-second vertical videos, 9:16) - Quick, engaging content for mobile
 2. **Long-form** (~10-minute horizontal videos, 16:9, up to 4K) - In-depth content with references
 
-Both formats orchestrate: script creation → fact checking → voiceover generation (ElevenLabs) → footage acquisition (yt-dlp) → video assembly (FFmpeg with GPU acceleration) → YouTube upload.
+Both formats orchestrate: script creation → fact checking → voiceover generation (Gemini TTS / ElevenLabs) → footage acquisition (yt-dlp) → video assembly (FFmpeg with GPU acceleration) → YouTube upload.
 
 ## Common Commands
 
@@ -22,19 +22,24 @@ python3 src/fact_checker.py --project {name} --web-search --api-key YOUR_KEY
 python3 src/fact_checker.py --project {name} --validate-refs  # Check reference coverage (long-form)
 python3 src/fact_checker.py --project {name} --suggest-refs --web-search  # Get source suggestions
 
-# Generate voiceovers (concurrent by default)
+# Generate voiceovers (Gemini TTS by default, free)
 python3 src/audio_generator.py --project {name}
-python3 src/audio_generator.py --project {name} --sequential  # disable concurrency
+python3 src/audio_generator.py --project {name} --engine elevenlabs  # paid fallback
+python3 src/audio_generator.py --project {name} --voice Charon       # different Gemini voice
+python3 src/audio_generator.py --project {name} --sequential         # disable concurrency
 
 # Download footage (concurrent by default)
 python3 src/footage_downloader.py --project {name}
 python3 src/footage_downloader.py --project {name} --workers 5  # custom concurrency
 python3 src/footage_downloader.py --project {name} --sequential  # disable concurrency
 
-# Download footage for specific segment with custom query
+# Download footage for specific segment (auto-downloads top result)
 python3 src/footage_downloader.py --project {name} --segment 0 --query "F1 race highlights"
 
-# Check footage status
+# Preview candidates without downloading
+python3 src/footage_downloader.py --project {name} --segment 0 --query "F1 race highlights" --dry-run
+
+# Check footage status (shows downloaded video titles)
 python3 src/footage_downloader.py --project {name} --list
 
 # Extract preview frames (concurrent by default)
@@ -92,7 +97,7 @@ script.json → fact_check → audio/*.mp3 → footage/*.mp4 → previews/*.jpg 
 **Core Modules (`src/`):**
 - `config.py` - Centralized settings, API keys, F1 team colors, video specs (shorts + long-form)
 - `fact_checker.py` - Script validation with knowledge base, web search, and **reference validation**
-- `audio_generator.py` - ElevenLabs TTS with caching and **concurrent processing**
+- `audio_generator.py` - Gemini TTS (default, free) / ElevenLabs TTS with caching and **concurrent processing**
 - `footage_downloader.py` - yt-dlp YouTube search/download with **concurrent downloads** (shorts only)
 - `stock_image_fetcher.py` - Pexels/Unsplash API for stock photos (long-form)
 - `image_video_assembler.py` - **Long-form**: Intelligent visual routing with images, talking head, YouTube clips, quotes, and Veo3
@@ -116,7 +121,8 @@ projects/{name}/
 **External Dependencies:**
 - ffmpeg/ffprobe (video processing)
 - yt-dlp (YouTube download - for shorts)
-- ElevenLabs API (TTS)
+- Google Gemini TTS API (free tier, `pip install google-genai`)
+- ElevenLabs API (TTS, paid fallback)
 - Pexels API (stock images - for long-form)
 - Unsplash API (fallback stock images - optional)
 - YouTube Data API v3 (upload)
@@ -131,6 +137,20 @@ projects/{name}/
 4. **Re-encode during concat** - Stream copy corrupts timestamps with mixed source formats
 5. **Cache awareness** - Audio files are cached; delete segment MP3 to regenerate
 6. **Duration validation** - Assembly verifies video/audio durations match within 1 second
+
+## Footage Sourcing Lessons
+
+1. **Always prefer official F1 channel** - Fan channels (e.g., USA SportsLine, Saile Racing) often have screen recordings with visible cursors, news anchors, or low-quality re-uploads. Official FORMULA 1 channel footage is consistently clean and high quality.
+2. **Use broad official videos + transcript search for specific teams** - Searching for a specific team's car launch often returns fan re-uploads. Instead, download a broad official video (e.g., "2026 F1 Barcelona Shakedown highlights") and use `yt-dlp --write-auto-sub` to extract subtitles, then grep for the team name to find the exact timestamp.
+3. **Subtitle-based timestamp finding**:
+   ```bash
+   # Download subtitles and find where a team/driver appears
+   yt-dlp --write-auto-sub --sub-lang en --skip-download --sub-format vtt -o /tmp/subs "https://youtube.com/watch?v=VIDEO_ID"
+   grep -i "alpine" /tmp/subs*.vtt  # Shows timestamps where "alpine" is mentioned
+   ```
+4. **Delete previews before re-extracting** - Preview images are cached. After replacing footage, delete old previews (`rm previews/segNN_*.jpg`) before running preview_extractor, otherwise stale images will be shown.
+5. **Delete footage before re-downloading** - `yt-dlp` may skip download if a file already exists at the output path. Always `rm` the old file first when re-downloading a segment.
+6. **Use `--list` to verify downloads** - After bulk download, run `--list` to see the actual YouTube video titles. This catches mismatches instantly without needing to open preview images (e.g., "Scuderia Ferrari SF-26" when you wanted Alpine).
 
 ## Performance Features
 
