@@ -59,7 +59,7 @@ Once user confirms story selection, create the daily news video:
    ```
 
 3. **Script Guidelines**:
-   - Keep each news item to 1-2 crisp sentences
+   - Keep each news item to 1-2 crisp sentences. If text wraps to 8+ lines, the assembler auto-splits into two timed parts at a natural break point — part 1 shows first, then gets replaced by part 2. Still prefer shorter segments when possible.
    - Use present tense for immediacy ("Ferrari reveals...", "Hamilton admits...")
    - Include specific details (names, numbers, quotes)
    - Transition naturally between stories

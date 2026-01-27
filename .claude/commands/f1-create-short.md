@@ -38,7 +38,7 @@ f1.ai/
 1. **Understand the Prompt**: Analyze what story/narrative the user wants
 2. **Research** (if needed): Search web for facts, quotes, sources
 3. **Create Script**: Generate `script.json` with segments containing:
-   - `text`: Voiceover text
+   - `text`: Voiceover text (keep each segment to 1-2 sentences; if text exceeds 8 wrapped lines, the assembler auto-splits into two timed parts at a natural break point, but shorter segments are always better for short-form)
    - `context`: Segment purpose
    - `footage_query`: YouTube search query for relevant footage
    - `footage_start`: Timestamp in source video (verify with previews!)
@@ -102,7 +102,7 @@ python3 src/video_assembler.py --project {name}
 
 ### Video Features
 - **Blur-pad effect**: Full footage shown centered, blurred version as background (no cropping)
-- **Text captions**: White text in top blur area matching narration (auto-wrapped)
+- **Text captions**: Team-colored text always at the bottom (auto-wrapped). If text exceeds 8 lines, it is automatically split into two timed parts at a natural break point (period, comma, semicolon) — part 1 shows first, then gets replaced by part 2
 - **Background music**: Epic cinematic track mixed at 15% volume
 - **GPU encoding**: VideoToolbox for fast processing
 
