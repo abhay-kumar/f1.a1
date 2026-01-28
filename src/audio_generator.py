@@ -23,6 +23,7 @@ from src.config import (
     MAX_CONCURRENT_AUDIO,
     MODEL_ID,
     SHARED_DIR,
+    SHORTS_AUDIO_SPEED,
     VOICE_ID,
     get_elevenlabs_key,
     get_project_dir,
@@ -284,8 +285,8 @@ def main():
     parser.add_argument(
         "--speed",
         type=float,
-        default=1.0,
-        help="Playback speed multiplier (e.g., 1.25 for 25%% faster). Applied via FFmpeg atempo.",
+        default=SHORTS_AUDIO_SPEED,
+        help=f"Playback speed multiplier (default: {SHORTS_AUDIO_SPEED}x from config). Applied via FFmpeg atempo.",
     )
     parser.add_argument(
         "--sequential", action="store_true", help="Disable concurrent processing"
