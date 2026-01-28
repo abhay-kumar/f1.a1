@@ -31,6 +31,9 @@ AUDIO_BITRATE = "192k"
 OUTPUT_WIDTH = 1080
 OUTPUT_HEIGHT = 1920  # 9:16 vertical
 
+# Audio Pace Config
+SHORTS_AUDIO_SPEED = 1.25  # 25% faster for punchy short-form delivery
+
 # Music Config
 BACKGROUND_MUSIC = f"{SHARED_DIR}/music/background.mp3"
 BACKGROUND_MUSIC_LONGFORM = f"{SHARED_DIR}/music/background_longform.mp3"  # Optional separate music for long-form
